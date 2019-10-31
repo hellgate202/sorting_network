@@ -47,10 +47,13 @@ initial
   begin
     fork
       clk_gen();
-      apply_rst();
     join_none
+    apply_rst();
     for( int i = 0; i < NUMBERS_AMOUNT; i++ )
-      data_i[i] = $urandom_range( 2 ** NUMBER_WIDTH - 1 );
+      data_i[i] = 9 - i;
+    data_valid_i = 1'b1;
+    @( posedge clk );
+    data_valid_i = 1'b0;
     repeat( 100 )
       @( posedge clk );
     $stop();

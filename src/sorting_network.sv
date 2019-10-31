@@ -10,7 +10,7 @@ module sorting_network #(
   output                                                data_valid_o
 );
 
-localparam int LAYERS_AMOUNT = NUMBERS_AMOUNT;
+localparam int LAYERS_AMOUNT = NUMBERS_AMOUNT + 1;
 
 function logic [1 : 0][NUMBER_WIDTH - 1 : 0] comp_and_swap
 (
