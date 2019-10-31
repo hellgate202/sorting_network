@@ -1,0 +1,2 @@
+../src/sorting_network.sv
+./tb_sorting_network.sv
