@@ -35,48 +35,55 @@ function logic [1 : 0][NUMBER_WIDTH - 1 : 0] comp_and_swap
 endfunction
 
 logic [LAYERS_AMOUNT - 1 : 0][NUMBERS_AMOUNT - 1 : 0][NUMBER_WIDTH - 1 : 0] network;
+logic [LAYERS_AMOUNT - 1 : 0][NUMBERS_AMOUNT - 1 : 0][NUMBER_WIDTH - 1 : 0] network_comb;
 logic [LAYERS_AMOUNT - 1 : 0]                                               data_valid_d;
 
-assign network[0] = data_i;
-
-always_ff @( posedge clk_i, posedge rst_i )
-  if( rst_i )
-    network[LAYERS_AMOUNT - 1 : 1] <= '0;
-  else
+always_comb
+  begin
+    network_comb[0] = data_i;
+    network_comb[LAYERS_AMOUNT - 1 : 1] = network[LAYERS_AMOUNT - 1 : 1];
     for( int layer = 1; layer < LAYERS_AMOUNT; layer++ )
       if( layer % 2 )
         if( NUMBERS_AMOUNT % 2 )
           begin
             for( int pair = 0; pair < NUMBERS_AMOUNT - 1; pair += 2 )
-              network[layer][pair + 1 : pair] <= comp_and_swap( network[layer - 1][pair + 1 : pair] );
-            network[layer][NUMBERS_AMOUNT - 1] <= network[layer - 1][NUMBERS_AMOUNT - 1];
+              network_comb[layer][pair + 1 -: 2] = comp_and_swap( network[layer - 1][pair + 1 -: 2] );
+            network_comb[layer][NUMBERS_AMOUNT - 1] = network[layer - 1][NUMBERS_AMOUNT - 1];
           end
         else
           for( int pair = 0; pair < NUMBERS_AMOUNT; pair += 2 )
-            network[layer][pair + 1 : pair] <= comp_and_swap( network[layer - 1][pair + 1 : pair] );
+            network_comb[layer][pair + 1 -: 2] = comp_and_swap( network[layer - 1][pair + 1 -: 2] );
       else
         if( NUMBERS_AMOUNT % 2 )
           begin
-            network[layer][0] <= network[layer - 1][0];
-            for( int pair = 0; pair < NUMBERS_AMOUNT; pair += 2 ) 
-              network[layer][pair + 1 : pair] <= comp_and_swap( network[layer - 1][pair + 1 : pair] );
+            network_comb[layer][0] = network[layer - 1][0];
+            for( int pair = 1; pair < NUMBERS_AMOUNT; pair += 2 ) 
+              network_comb[layer][pair + 1 -: 2] = comp_and_swap( network[layer - 1][pair + 1 -: 2] );
           end
         else
           begin
-            network[layer][0]                  <= network[layer - 1][0];
-            for( int pair = 0; pair < NUMBERS_AMOUNT - 1; pair += 2 ) 
-              network[layer][pair + 1 : pair] <= comp_and_swap( network[layer - 1][pair + 1 : pair] );
-            network[layer][NUMBERS_AMOUNT - 1] <= network[layer - 1][NUMBERS_AMOUNT - 1];
+            network_comb[layer][0]                  = network[layer - 1][0];
+            for( int pair = 1; pair < NUMBERS_AMOUNT - 1; pair += 2 ) 
+              network_comb[layer][pair + 1 -: 2] = comp_and_swap( network[layer - 1][pair + 1 -: 2] );
+            network_comb[layer][NUMBERS_AMOUNT - 1] = network[layer - 1][NUMBERS_AMOUNT - 1];
           end
-
-assign data_valid_d[0] = data_valid_i;
+  end
 
 always_ff @( posedge clk_i, posedge rst_i )
   if( rst_i )
-    data_valid_d[LAYERS_AMOUNT - 1 : 1] <= '0;
+    network <= '0;
   else
-    for( int i = 1; i < LAYERS_AMOUNT; i++ )
-      data_valid_d[i] <= data_valid_d[i - 1];
+    network <= network_comb;
+
+always_ff @( posedge clk_i, posedge rst_i )
+  if( rst_i )
+    data_valid_d <= '0;
+  else
+    begin
+      data_valid_d[0] <= data_valid_i;
+      for( int i = 1; i < LAYERS_AMOUNT; i++ )
+        data_valid_d[i] <= data_valid_d[i - 1];
+    end
  
 assign data_o       = network[LAYERS_AMOUNT - 1];
 assign data_valid_o = data_valid_d[LAYERS_AMOUNT - 1];
